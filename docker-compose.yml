@@ -1,0 +1,92 @@
+---
+version: "3"
+
+services:
+
+  member-1:
+    container_name: member-1
+    image: adoptopenjdk/openjdk8:alpine
+    volumes:
+      - ".:/opt/project"
+    command: >
+      java -cp /opt/project/jet-server/target/jet-server-1.0-SNAPSHOT.jar
+      -Dhazelcast.config=/opt/project/hazelcast-config/hazelcast.xml
+      com.hazelcast.sample.jet.geo.server.Server
+
+  member-2:
+    container_name: member-2
+    image: adoptopenjdk/openjdk8:alpine
+    volumes:
+      - ".:/opt/project"
+    command: >
+      java -cp /opt/project/jet-server/target/jet-server-1.0-SNAPSHOT.jar
+      -Dhazelcast.config=/opt/project/hazelcast-config/hazelcast.xml
+      com.hazelcast.sample.jet.geo.server.Server
+
+#  client:
+#    container_name: client
+#    image: adoptopenjdk/openjdk8:alpine
+#    volumes:
+#      - ".:/opt/project"
+#    depends_on:
+#      - member-1
+#      - member-2
+#    command: >
+#      java -cp /opt/project/hazelcast-client/target/hazelcast-client-1.0-SNAPSHOT.jar
+#      -Dhazelcast.client.config=/opt/project/hazelcast-config/hazelcast-client.xml
+#      com.hazelcast.sample.jet.geo.client.SimpleClient
+#      --count=10000
+#      --rate=10
+#      --map=test
+
+  emitter:
+    container_name: emitter
+    build:
+      context: docker-images/hazelcast-python
+    volumes:
+      - ".:/opt/project"
+    depends_on:
+      - member-1
+      - member-2
+    command: >
+      python /opt/project/data/emitter.py
+
+  mapserver:
+    container_name: mapserver
+    build:
+      context: docker-images/hazelcast-python
+    volumes:
+      - ".:/opt/project"
+    depends_on:
+      - member-1
+      - member-2
+    ports:
+      - 5006:5006
+    command: >
+      bokeh serve /opt/project/data/beijing.py
+
+
+  hazelcast-mancenter:
+    container_name: hazelcast-mancenter
+    volumes:
+      - ".:/opt/project"
+    build:
+      context: docker-images/hazelcast-mancenter
+    ports:
+      - 8080:8080
+
+  jet-mancenter:
+    build:
+      context: docker-images/jet-mancenter
+    container_name: jet-mancenter
+    ports:
+      - 8081:8081
+    command: >
+      java
+      -Djet.licenseKey=JET_LICENSE_HERE
+      -jar /opt/hazelcast-jet-management-center-3.2/hazelcast-jet-management-center-3.2.jar
+      -c /etc/hazelcast/hazelcast-client.xml
+
+    depends_on:
+      - member-1
+      - member-2

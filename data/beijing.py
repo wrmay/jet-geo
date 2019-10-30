@@ -30,32 +30,33 @@ def map_listener(event):
         changeMap[event.key] = event.value
 
 
-# pingMap.add_entry_listener(include_value=True, added_func=map_listener, updated_func=map_listener)
+pingMap.add_entry_listener(include_value=True, added_func=map_listener, updated_func=map_listener)
 
 # now retrieve all entries from the map and build a ColumnDataSource
 values = [entry.loads() for entry in pingMap.values().result()]  # apparently map.values() returns a concurrent.futures.Future
 latitudes = [entry['latitude'] for entry in values]
 longitudes = [entry['longitude'] for entry in values]
 data_source = ColumnDataSource({'latitude': latitudes, 'longitude': longitudes})
+print('DATA SOURCE HAS {0}/{1} LATITUDES/LONGITUDES'.format(len(latitudes), len(longitudes)))
 
 # build the map
-map_options = GMapOptions(map_type='roadmap', lat=39.9042, lng=116.4074, zoom=11)
-p = gmap("YOUR GOOGLE MAPS API KEY", map_options, title='Bejing')
+map_options = GMapOptions(map_type='roadmap', lat=39.98, lng=116.32, zoom=14)
+# map_options = GMapOptions(map_type='roadmap', lat=39.9042, lng=116.4074, zoom=11)
+p = gmap("GOOGLE MAPS API KEY", map_options, title='Bejing')
 p.circle('longitude', 'latitude', color='blue', size=10, source=data_source)
 layout = column(p)
 
 
-# right now, replace everything
-# def update():
-#     global global_row
-#     global_row += 1
-#     longitude_patches = [(p, phones[p].at[global_row, 'Longitude']) for p in range(len(phones)) if
-#                          len(phones[p].index) > global_row]
-#     latitude_patches = [(p, phones[p].at[global_row, 'Latitude']) for p in range(len(phones)) if
-#                         len(phones[p].index) > global_row]
-#     patches = {'lon': longitude_patches, 'lat': latitude_patches}
-#     source.patch(patches)
+def update():
+    with map_lock:
+        entry_list = [entry.loads() for entry in changeMap.values()]
+        longitude_patches = [(entry["id"], entry["longitude"]) for entry in  entry_list]
+        latitude_patches = [(entry["id"], entry["latitude"]) for entry in entry_list]
+        patches = {'longitude': longitude_patches, 'latitude': latitude_patches}
+        changeMap.clear()
+
+    data_source.patch(patches)
 
 
-# curdoc().add_periodic_callback(update, 200)
+curdoc().add_periodic_callback(update, 200)
 curdoc().add_root(layout)

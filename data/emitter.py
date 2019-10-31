@@ -11,8 +11,7 @@ traces = []
 trace_count = 0
 ping_count = 0
 
-COUNT = 100
-PING_INTERVAL_MS = 5000
+COUNT = 500
 
 
 class Traces:
@@ -37,20 +36,28 @@ class Traces:
 class Trace:
     def __init__(self, df):
         self.data = df
-        self.curr_item = -1
-        self.increment = 1
+        self.curr_item = 0
+        self.start_of_trace = df.at[0, 'Date'] * 3600 * 24
 
-    def next(self):
-        self.curr_item += self.increment
-        if self.curr_item == len(self.data.index):
-            self.curr_item -= 1
-            self.increment = -1
-        elif self.curr_item < 0:
+    def next(self, elapsed):
+        """
+        returns a list of all items happened before the given elapsed time and have not yet been returned
+        raises a StopIteration exception if all items have already been returned.  May return an empty list
+
+        self.curr_item always points to the first item that has not been returned
+        """
+        if self.curr_item >= len(self.data.index):
+            raise StopIteration
+
+        sim_time = self.start_of_trace + elapsed
+        result = []
+        while self.curr_item < len(self.data.index) and self.data.at[self.curr_item, 'Date'] * 3600 * 24 < sim_time:
+            row = self.data.iloc[self.curr_item]
+            result.append(
+                {'latitude': row['Latitude'], 'longitude': row['Longitude'], 'time': row['Date'] * 3600 * 24 - self.start_of_trace})
             self.curr_item += 1
-            self.increment = 1
 
-        row = self.data.iloc[self.curr_item]
-        return {'latitude': row['Latitude'], 'longitude': row['Longitude']}
+        return result
 
 
 def setup():
@@ -78,27 +85,35 @@ if __name__ == '__main__':
     config.network_config.connection_attempt_limit = 10
     config.network_config.connection_attempt_period = 5
     hz = hazelcast.HazelcastClient(config)
-    map = hz.get_map('pings').blocking()
+    location_map = hz.get_map('pings').blocking()
 
     # returns a map of traces
     traces = setup()
 
-    # in a loop, emit the next lat/long in the trace - emit one item each, every 5 seconds
-    # Allow 1 ms for emitting each one.  There are 5000ms in which to emit 100 entries so
-    # wait approximately 4900 / 100 = 49ms before  each.
-    wait_ms = (PING_INTERVAL_MS - COUNT) / COUNT
-    next_wakeup = (time.time_ns() / 1000000) + PING_INTERVAL_MS
-    while True:
-        for key, val in traces.items():
-            time.sleep(wait_ms / 1000)
-            coordinate = val.next()
-            coordinate['id'] = key
-            map.put(key, HazelcastJsonValue(coordinate))
-            #print('item {0} at {1},{2}'.format(key, coordinate['latitude'], coordinate['longitude']))
-
-        # sleep an additional amount of time if necessary to stay on schedule
-        now_ms = time.time_ns() / 1000000
-        if now_ms < next_wakeup:
-            sleep_time = (next_wakeup - now_ms) / 1000
-            next_wakeup += PING_INTERVAL_MS
+    # every 5 seconds, advance the simulation time 5s and for every trace, emit all of the pings that happened before
+    # the new simulation time
+    start_of_simulation = time.time()
+    next_wakeup = start_of_simulation + 5
+    while len(traces) > 0:
+        sleep_time = next_wakeup - time.time()
+        next_wakeup += 5
+        if sleep_time > 0:
             time.sleep(sleep_time)
+
+        simulation_time = time.time() - start_of_simulation
+        print('simulation time={0}'.format(simulation_time))
+        delete_list = []
+        for key, val in traces.items():
+            try:
+                pings = val.next(simulation_time)
+                # consider changing this to putAll
+                for ping in pings:
+                    ping['id'] = key
+                    location_map.put(key, HazelcastJsonValue(ping))
+                    print('item {0} t={3} at {1},{2}'.format(key, ping['latitude'], ping['longitude'], ping['time']))
+            except StopIteration:
+                delete_list.append(key)
+                print('Trace {0} finished. {1} traces remain active.'.format(key, len(traces) - len(delete_list)))
+
+        for key in delete_list:
+            del traces[key]

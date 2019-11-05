@@ -22,6 +22,19 @@
     </network>
 
 
+    <map name="ping_input">
+        <in-memory-format>OBJECT</in-memory-format>
+    </map>
+
+    <map name="ping_output">
+        <in-memory-format>BINARY</in-memory-format>
+    </map>
+
+    <event-journal enabled="true">
+        <mapName>ping_input</mapName>
+        <capacity>100000</capacity>
+    </event-journal>
+
     <properties>
     </properties>
 

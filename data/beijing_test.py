@@ -38,8 +38,8 @@ longitudes = [df.at[global_row, 'Longitude'] for df in phones]
 # build the map
 map_options = GMapOptions(map_type='roadmap', lat=39.9042, lng=116.4074, zoom=11)
 p = gmap("YOUR GOOGLE MAPS API KEY", map_options, title='Bejing')
-source = ColumnDataSource({'lat': lats, 'lon': longitudes})
-p.circle('lon', 'lat', color='blue', size=10, source=source)
+source = ColumnDataSource({'lat': lats, 'lon': longitudes, 'color': 'blue'})
+p.circle('lon', 'lat', color='color', size=10, source=source)
 layout = column(p)
 
 

@@ -41,7 +41,7 @@ class Trace:
 
     def next(self, elapsed):
         """
-        returns a list of all items happened before the given elapsed time and have not yet been returned
+        returns a list of all items that happened before the given elapsed time and have not yet been returned
         raises a StopIteration exception if all items have already been returned.  May return an empty list
 
         self.curr_item always points to the first item that has not been returned
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     config.network_config.connection_attempt_limit = 10
     config.network_config.connection_attempt_period = 5
     hz = hazelcast.HazelcastClient(config)
-    location_map = hz.get_map('pings').blocking()
+    location_map = hz.get_map('ping_input').blocking()
 
     # returns a map of traces
     traces = setup()
@@ -110,7 +110,7 @@ if __name__ == '__main__':
                 for ping in pings:
                     ping['id'] = key
                     location_map.put(key, HazelcastJsonValue(ping))
-                    print('item {0} t={3} at {1},{2}'.format(key, ping['latitude'], ping['longitude'], ping['time']))
+                    # print('item {0} t={3} at {1},{2}'.format(key, ping['latitude'], ping['longitude'], ping['time']))
             except StopIteration:
                 delete_list.append(key)
                 print('Trace {0} finished. {1} traces remain active.'.format(key, len(traces) - len(delete_list)))

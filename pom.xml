@@ -15,11 +15,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hazelcast.version>3.12</hazelcast.version>
         <jet.version>3.2</jet.version>
+        <jackson.version>2.10.0</jackson.version>
     </properties>
 
     <modules>
         <module>jet-server</module>
         <module>hazelcast-client</module>
+        <module>categorize-velocity-jet-job</module>
     </modules>
 
     <repositories>
@@ -37,6 +39,10 @@
                 <version>${jet.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>            <dependency>
                 <groupId>com.hazelcast</groupId>
                 <artifactId>hazelcast-client</artifactId>
                 <version>${hazelcast.version}</version>

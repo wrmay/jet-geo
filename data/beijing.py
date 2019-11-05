@@ -18,45 +18,72 @@ hz_config.network_config.connection_attempt_limit = 10
 hz_config.network_config.connection_attempt_period = 5
 hz = hazelcast.HazelcastClient(hz_config)
 
-changeMap = dict()
-pingMap = hz.get_map('pings')
-map_lock = threading.Lock()
+# position map and lock
+position_map = hz.get_map('ping_input')  # remote hz map
+position_map_lock = threading.Lock()  # if we eventually end up with multiple map servers this should be a distributed lock
+position_change_map = dict()  # changes accumulate in this local map
+
+# color map and lock
+color_map = hz.get_map('ping_output')  # remote hz map
+color_map_lock = threading.Lock()  # if we eventually end up with multiple map servers this should be a distributed lock
+color_change_map = dict()  # changes accumulate in this local map
 
 
-# add a listener to ping map to place all add/update events into the changeMap
-def map_listener(event):
-    global changeMap
-    with map_lock:
-        changeMap[event.key] = event.value
+# add a listener to position map to place all add/update events into the changeMap
+def position_listener(event):
+    global position_change_map
+    with position_map_lock:
+        position_change_map[event.key] = event.value
 
 
-pingMap.add_entry_listener(include_value=True, added_func=map_listener, updated_func=map_listener)
+position_map.add_entry_listener(include_value=True, added_func=position_listener, updated_func=position_listener)
+
+
+# add a listener to position map to place all add/update events into the changeMap
+def color_listener(event):
+    global color_change_map
+    with color_map_lock:
+        color_change_map[event.key] = event.value
+
+
+color_map.add_entry_listener(include_value=True, added_func=color_listener, updated_func=color_listener)
 
 # now retrieve all entries from the map and build a ColumnDataSource
-values = [entry.loads() for entry in pingMap.values().result()]  # apparently map.values() returns a concurrent.futures.Future
+values = [entry.loads() for entry in
+          position_map.values().result()]  # apparently map.values() returns a concurrent.futures.Future
 latitudes = [entry['latitude'] for entry in values]
 longitudes = [entry['longitude'] for entry in values]
-data_source = ColumnDataSource({'latitude': latitudes, 'longitude': longitudes})
-print('DATA SOURCE HAS {0}/{1} LATITUDES/LONGITUDES'.format(len(latitudes), len(longitudes)))
+ids = [entry['id'] for entry in values]
+colors = ['gray' for c in range(len(latitudes))]
+data_source = ColumnDataSource({'latitude': latitudes, 'longitude': longitudes, 'color': colors})
 
 # build the map
-map_options = GMapOptions(map_type='roadmap', lat=39.98, lng=116.32, zoom=14)
-# map_options = GMapOptions(map_type='roadmap', lat=39.9042, lng=116.4074, zoom=11)
-p = gmap("GOOGLE MAPS API KEY", map_options, title='Bejing')
-p.circle('longitude', 'latitude', color='blue', size=10, source=data_source)
+map_options = GMapOptions(map_type='roadmap', lat=39.98, lng=116.32, zoom=10)
+p = gmap("YOUR GOOGLE MAPS API KEY", map_options, title='Bejing')
+p.circle('longitude', 'latitude', color='color', size=10, source=data_source)
 layout = column(p)
 
 
 def update():
-    with map_lock:
-        entry_list = [entry.loads() for entry in changeMap.values()]
-        longitude_patches = [(entry["id"], entry["longitude"]) for entry in  entry_list]
+    with position_map_lock:
+        entry_list = [entry for entry in [e.loads() for e in position_change_map.values()] if
+                      entry['id'] in ids]  # in check is costly, can we do something better ?
+        longitude_patches = [(entry["id"], entry["longitude"]) for entry in entry_list]
         latitude_patches = [(entry["id"], entry["latitude"]) for entry in entry_list]
         patches = {'longitude': longitude_patches, 'latitude': latitude_patches}
-        changeMap.clear()
+        position_change_map.clear()
 
     data_source.patch(patches)
 
+    if len(color_change_map) > 0:
+        with color_map_lock:
+            color_patches = [(k, v) for k, v in color_change_map.items() if
+                             k in ids]  # in check is costly, can we do something better ?
+            color_change_map.clear()
 
-curdoc().add_periodic_callback(update, 200)
+        print('PATCH COLORS {0}'.format(color_patches))
+        data_source.patch({'color': color_patches})
+
+
+curdoc().add_periodic_callback(update, 500)
 curdoc().add_root(layout)

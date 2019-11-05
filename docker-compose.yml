@@ -23,22 +23,6 @@ services:
       -Dhazelcast.config=/opt/project/hazelcast-config/hazelcast.xml
       com.hazelcast.sample.jet.geo.server.Server
 
-#  client:
-#    container_name: client
-#    image: adoptopenjdk/openjdk8:alpine
-#    volumes:
-#      - ".:/opt/project"
-#    depends_on:
-#      - member-1
-#      - member-2
-#    command: >
-#      java -cp /opt/project/hazelcast-client/target/hazelcast-client-1.0-SNAPSHOT.jar
-#      -Dhazelcast.client.config=/opt/project/hazelcast-config/hazelcast-client.xml
-#      com.hazelcast.sample.jet.geo.client.SimpleClient
-#      --count=10000
-#      --rate=10
-#      --map=test
-
   emitter:
     container_name: emitter
     build:

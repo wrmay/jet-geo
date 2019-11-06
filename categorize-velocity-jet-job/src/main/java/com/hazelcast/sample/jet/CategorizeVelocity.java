@@ -28,17 +28,17 @@ public class CategorizeVelocity {
                 .withoutTimestamps()
                 .setName("Events as HazelcastJsonValue from Hazelcast Map");
 
-        rawStream.drainTo(Sinks.logger());
+//        rawStream.drainTo(Sinks.logger());
 
 
         // convert map event to Tuple4 of Integer (id), Double (latitude), Double (longitude), Long (time)
         StreamStageWithKey<Tuple4<Integer, Double, Double, Long>, Integer> tupleStreamWithKey = rawStream.map(entry -> toTuple(entry.getValue()))
-                .addTimestamps(item -> item.f3(), 3000)   //research the second parameter, what are the units, why did I have lat entries when this value was 30 ? Why did the error message say "ms" ?
+                .addTimestamps(item -> item.f3(), 10)   //research the second parameter, what are the units, why did I have lat entries when this value was 30 ? Why did the error message say "ms" ?
                 .setName("Convert to tuples")
                 .groupingKey(item -> item.f0());
 
 
-        StageWithKeyAndWindow<Tuple4<Integer, Double, Double, Long>, Integer> pingWindows = tupleStreamWithKey.window(WindowDefinition.sliding(20, 5));
+        StageWithKeyAndWindow<Tuple4<Integer, Double, Double, Long>, Integer> pingWindows = tupleStreamWithKey.window(WindowDefinition.sliding(30, 5));
 
         AggregateOperation1<Tuple4<Integer, Double, Double, Long>, VelocityAccumulator, Double> velocityAggregator =
                 AggregateOperation.withCreate(VelocityAccumulator::new)
@@ -56,7 +56,7 @@ public class CategorizeVelocity {
         return pipeline;
     }
 
-    private static final double conversionFactor = 3600.0/(.00254 * 12 * 5280);
+    private static final double conversionFactor = 3600.0/(0.0254 * 12 * 5280);
 
     // input in meters/second - output is a color code
     private static String categorizeVelocity(Double v){

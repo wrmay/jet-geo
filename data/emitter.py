@@ -37,7 +37,7 @@ class Trace:
     def __init__(self, df):
         self.data = df
         self.curr_item = 0
-        self.start_of_trace = df.at[0, 'Date'] * 3600 * 24
+        self.start_of_trace = int(df.at[0, 'Date'] * 3600 * 24)
 
     def next(self, elapsed):
         """
@@ -54,7 +54,7 @@ class Trace:
         while self.curr_item < len(self.data.index) and self.data.at[self.curr_item, 'Date'] * 3600 * 24 < sim_time:
             row = self.data.iloc[self.curr_item]
             result.append(
-                {'latitude': row['Latitude'], 'longitude': row['Longitude'], 'time': row['Date'] * 3600 * 24 - self.start_of_trace})
+                {'latitude': row['Latitude'], 'longitude': row['Longitude'], 'time': int(row['Date'] * 3600 * 24 - self.start_of_trace)})
             self.curr_item += 1
 
         return result

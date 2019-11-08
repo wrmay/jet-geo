@@ -24,6 +24,7 @@
 
     <map name="ping_input">
         <in-memory-format>OBJECT</in-memory-format>
+        <max-idle-seconds>60</max-idle-seconds>
     </map>
 
     <map name="ping_output">

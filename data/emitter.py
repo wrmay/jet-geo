@@ -90,10 +90,10 @@ if __name__ == '__main__':
     # returns a map of traces
     traces = setup()
 
-    # every 5 seconds, advance the simulation time 5s and for every trace, emit all of the pings that happened before
+    # every  second, advance the simulation time 5s and for every trace, emit all of the pings that happened before
     # the new simulation time
     start_of_simulation = time.time()
-    next_wakeup = start_of_simulation + 5
+    next_wakeup = start_of_simulation + 1  # publish changes every 1 second
     while len(traces) > 0:
         sleep_time = next_wakeup - time.time()
         next_wakeup += 5
@@ -101,7 +101,6 @@ if __name__ == '__main__':
             time.sleep(sleep_time)
 
         simulation_time = time.time() - start_of_simulation
-        print('simulation time={0}'.format(simulation_time))
         delete_list = []
         for key, val in traces.items():
             try:
@@ -110,7 +109,6 @@ if __name__ == '__main__':
                 for ping in pings:
                     ping['id'] = key
                     location_map.put(key, HazelcastJsonValue(ping))
-                    # print('item {0} t={3} at {1},{2}'.format(key, ping['latitude'], ping['longitude'], ping['time']))
             except StopIteration:
                 delete_list.append(key)
                 print('Trace {0} finished. {1} traces remain active.'.format(key, len(traces) - len(delete_list)))

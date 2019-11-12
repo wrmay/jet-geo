@@ -20,29 +20,37 @@ hz = hazelcast.HazelcastClient(hz_config)
 
 # position map and lock
 position_map = hz.get_map('ping_input')  # remote hz map
-position_map_lock = threading.Lock()  # if we eventually end up with multiple map servers this should be a distributed lock
+position_change_map_lock = threading.Lock()  # if we eventually end up with multiple map servers this should be a distributed lock
 position_change_map = dict()  # changes accumulate in this local map
 
 # color map and lock
 color_map = hz.get_map('ping_output')  # remote hz map
-color_map_lock = threading.Lock()  # if we eventually end up with multiple map servers this should be a distributed lock
+color_change_map_lock = threading.Lock()  # if we eventually end up with multiple map servers this should be a distributed lock
 color_change_map = dict()  # changes accumulate in this local map
+
+# alpha change  map and lock, used to hide expired entries
+alpha_change_map = dict()
+alpha_change_map_lock = threading.Lock()
 
 
 # add a listener to position map to place all add/update events into the changeMap
 def position_listener(event):
     global position_change_map
-    with position_map_lock:
+    with position_change_map_lock:
         position_change_map[event.key] = event.value
 
+def deleted_listener(event):
+    global alpha_change_map
+    with alpha_change_map_lock:
+        alpha_change_map[event.key] = 0.0
 
-position_map.add_entry_listener(include_value=True, added_func=position_listener, updated_func=position_listener)
+position_map.add_entry_listener(include_value=True, added_func=position_listener, updated_func=position_listener, expired_func=deleted_listener)
 
 
 # add a listener to position map to place all add/update events into the changeMap
 def color_listener(event):
     global color_change_map
-    with color_map_lock:
+    with color_change_map_lock:
         color_change_map[event.key] = event.value
 
 
@@ -55,34 +63,44 @@ latitudes = [entry['latitude'] for entry in values]
 longitudes = [entry['longitude'] for entry in values]
 ids = [entry['id'] for entry in values]
 colors = ['gray' for c in range(len(latitudes))]
-data_source = ColumnDataSource({'latitude': latitudes, 'longitude': longitudes, 'color': colors})
+alphas = [1.0 for a in range(len(latitudes))]
+data_source = ColumnDataSource({'latitude': latitudes, 'longitude': longitudes, 'color': colors, 'alpha': alphas})
 
 # build the map
 map_options = GMapOptions(map_type='roadmap', lat=39.98, lng=116.32, zoom=10)
-p = gmap("YOUR GOOGLE MAPS API KEY", map_options, title='Bejing')
-p.circle('longitude', 'latitude', color='color', size=10, source=data_source)
+p = gmap("GOOGLE MAPS API KEY", map_options, title='Bejing')
+p.circle('longitude', 'latitude', color='color', size=7, fill_alpha='alpha', line_width=0, source=data_source)
 layout = column(p)
 
 
 def update():
-    with position_map_lock:
-        entry_list = [entry for entry in [e.loads() for e in position_change_map.values()] if
-                      entry['id'] in ids]  # in check is costly, can we do something better ?
-        longitude_patches = [(entry["id"], entry["longitude"]) for entry in entry_list]
-        latitude_patches = [(entry["id"], entry["latitude"]) for entry in entry_list]
-        patches = {'longitude': longitude_patches, 'latitude': latitude_patches}
-        position_change_map.clear()
-
-    data_source.patch(patches)
+    patches = dict()
+    if len(position_change_map) > 0:
+        with position_change_map_lock:
+            entry_list = [entry for entry in [e.loads() for e in position_change_map.values()] if
+                          entry['id'] in ids]  # in check is costly, can we do something better ?
+            longitude_patches = [(entry["id"], entry["longitude"]) for entry in entry_list]
+            latitude_patches = [(entry["id"], entry["latitude"]) for entry in entry_list]
+            patches['longitude'] = longitude_patches
+            patches['latitude'] = latitude_patches
+            position_change_map.clear()
 
     if len(color_change_map) > 0:
-        with color_map_lock:
-            color_patches = [(k, v) for k, v in color_change_map.items() if
-                             k in ids]  # in check is costly, can we do something better ?
+        with color_change_map_lock:
+            color_patches = [(k, v) for k, v in color_change_map.items() if k in ids]  # in check is costly, can we do something better ?
             color_change_map.clear()
 
-        print('PATCH COLORS {0}'.format(color_patches))
-        data_source.patch({'color': color_patches})
+        patches['color'] = color_patches
+
+    if len(alpha_change_map) > 0:
+        with alpha_change_map_lock:
+            alpha_patches = [ (k,v) for k,v in alpha_change_map.items() if k in ids]
+            alpha_change_map.clear()
+
+        patches['alpha'] = alpha_patches
+
+    if len(patches) > 0:
+        data_source.patch(patches)
 
 
 curdoc().add_periodic_callback(update, 500)

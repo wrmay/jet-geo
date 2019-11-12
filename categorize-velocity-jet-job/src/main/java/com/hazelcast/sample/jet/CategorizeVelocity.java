@@ -26,19 +26,20 @@ public class CategorizeVelocity {
         // draw events from the ping_input Hazelcast map as HazelcastJsonValue
         StreamStage<Map.Entry<Integer, HazelcastJsonValue>> rawStream = pipeline.drawFrom(Sources.<Integer, HazelcastJsonValue>mapJournal("ping_input", JournalInitialPosition.START_FROM_CURRENT))
                 .withoutTimestamps()
-                .setName("Events as HazelcastJsonValue from Hazelcast Map");
+                .setName("HazelcastJsonValues from Hazelcast Map");
 
 //        rawStream.drainTo(Sinks.logger());
 
 
         // convert map event to Tuple4 of Integer (id), Double (latitude), Double (longitude), Long (time)
-        StreamStageWithKey<Tuple4<Integer, Double, Double, Long>, Integer> tupleStreamWithKey = rawStream.map(entry -> toTuple(entry.getValue()))
-                .addTimestamps(item -> item.f3(), 10)   //research the second parameter, what are the units, why did I have lat entries when this value was 30 ? Why did the error message say "ms" ?
-                .setName("Convert to tuples")
+        StreamStage<Tuple4<Integer, Double, Double, Long>> tupleStream = rawStream.map(entry -> toTuple(entry.getValue()))
+                .setName("Convert to 4-tuples");
+
+        StreamStageWithKey<Tuple4<Integer, Double, Double, Long>, Integer> timestampedTupleStream = tupleStream.addTimestamps(item -> item.f3(), 10)
+                .setName("Add timestamps and split by id")
                 .groupingKey(item -> item.f0());
 
-
-        StageWithKeyAndWindow<Tuple4<Integer, Double, Double, Long>, Integer> pingWindows = tupleStreamWithKey.window(WindowDefinition.sliding(30, 5));
+        StageWithKeyAndWindow<Tuple4<Integer, Double, Double, Long>, Integer> pingWindows = timestampedTupleStream.window(WindowDefinition.sliding(30, 2));
 
         AggregateOperation1<Tuple4<Integer, Double, Double, Long>, VelocityAccumulator, Double> velocityAggregator =
                 AggregateOperation.withCreate(VelocityAccumulator::new)
@@ -46,7 +47,7 @@ public class CategorizeVelocity {
                         .andCombine((l, r) -> l.combine(r))
                         .andExportFinish(acc -> acc.getResult());
 
-        StreamStage<KeyedWindowResult<Integer, Double>> velocities = pingWindows.aggregate(velocityAggregator).setName("Compute velocity over a rolling window.")
+        StreamStage<KeyedWindowResult<Integer, Double>> velocities = pingWindows.aggregate(velocityAggregator)
                 .setName("Calculate velocity");
 
         velocities.drainTo(Sinks.logger( item-> String.format("VELOCITY key=%04d velocity=%02.1f m/s",item.getKey(),item.getValue() )));

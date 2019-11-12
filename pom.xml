@@ -20,7 +20,6 @@
 
     <modules>
         <module>jet-server</module>
-        <module>hazelcast-client</module>
         <module>categorize-velocity-jet-job</module>
     </modules>
 

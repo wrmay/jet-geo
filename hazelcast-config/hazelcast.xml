@@ -23,6 +23,7 @@
 
 
     <map name="ping_input">
+        <statistics-enabled>true</statistics-enabled>
         <in-memory-format>OBJECT</in-memory-format>
         <max-idle-seconds>60</max-idle-seconds>
     </map>

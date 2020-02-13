@@ -61,6 +61,18 @@ services:
     ports:
       - 8080:8080
 
+  jet-mancenter:
+    build:
+      context: docker-images/jet-mancenter
+    container_name: jet-mancenter
+    ports:
+      - 8081:8081
+    command: >
+      java
+      -Djet.licenseKey=${JET_LICENSE_KEY}
+      -jar /opt/hazelcast-jet-management-center-3.2/hazelcast-jet-management-center-3.2.jar
+      -c /etc/hazelcast/hazelcast-client.xml
+
     depends_on:
       - member-1
       - member-2

@@ -78,7 +78,7 @@ public class VelocityAccumulator  implements Serializable {
         double c = 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a));
         double distance = R*c;
 
-        double time = latestTime - earliestTime;
+        double time = (latestTime - earliestTime) / 1000.0;
 //        log.info(String.format("%d traveling at %f m/s as of %d", id, distance / time, latestTime));
         return distance / time;
     }

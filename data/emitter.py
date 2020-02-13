@@ -54,7 +54,7 @@ class Trace:
         while self.curr_item < len(self.data.index) and self.data.at[self.curr_item, 'Date'] * 3600 * 24 < sim_time:
             row = self.data.iloc[self.curr_item]
             result.append(
-                {'latitude': row['Latitude'], 'longitude': row['Longitude'], 'time': int(row['Date'] * 3600 * 24 - self.start_of_trace)})
+                {'latitude': row['Latitude'], 'longitude': row['Longitude'], 'time': int(row['Date'] * 3600 * 24 - self.start_of_trace) * 1000})
             self.curr_item += 1
 
         return result

@@ -13,8 +13,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hazelcast.version>3.12</hazelcast.version>
-        <jet.version>3.2</jet.version>
+        <jet.version>3.2.1</jet.version>
         <jackson.version>2.10.0</jackson.version>
     </properties>
 
@@ -24,10 +23,6 @@
     </modules>
 
     <repositories>
-        <repository>
-            <id>Hazelcast Private Release Repository</id>
-            <url>https://repository.hazelcast.com/release/</url>
-        </repository>
     </repositories>
 
     <dependencyManagement>
@@ -41,36 +36,7 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson.version}</version>
-            </dependency>            <dependency>
-                <groupId>com.hazelcast</groupId>
-                <artifactId>hazelcast-client</artifactId>
-                <version>${hazelcast.version}</version>
             </dependency>
-<!--            <dependency>-->
-<!--                <groupId>com.hazelcast</groupId>-->
-<!--                <artifactId>hazelcast</artifactId>-->
-<!--                <version>${hazelcast.version}</version>-->
-<!--            </dependency>-->
-<!--            <dependency>-->
-<!--                <groupId>com.hazelcast</groupId>-->
-<!--                <artifactId>hazelcast-all</artifactId>-->
-<!--                <version>${hazelcast.version}</version>-->
-<!--            </dependency>-->
-            <dependency>
-                <groupId>com.hazelcast</groupId>
-                <artifactId>hazelcast-enterprise-client</artifactId>
-                <version>${hazelcast.version}</version>
-            </dependency>
-<!--            <dependency>-->
-<!--                <groupId>com.hazelcast</groupId>-->
-<!--                <artifactId>hazelcast-enterprise</artifactId>-->
-<!--                <version>${hazelcast.version}</version>-->
-<!--            </dependency>-->
-<!--            <dependency>-->
-<!--                <groupId>com.hazelcast</groupId>-->
-<!--                <artifactId>hazelcast-enterprise-all</artifactId>-->
-<!--                <version>${hazelcast.version}</version>-->
-<!--            </dependency>-->
         </dependencies>
     </dependencyManagement>
 

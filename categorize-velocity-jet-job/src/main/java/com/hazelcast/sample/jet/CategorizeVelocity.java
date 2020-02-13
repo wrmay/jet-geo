@@ -35,11 +35,11 @@ public class CategorizeVelocity {
         StreamStage<Tuple4<Integer, Double, Double, Long>> tupleStream = rawStream.map(entry -> toTuple(entry.getValue()))
                 .setName("Convert to 4-tuples");
 
-        StreamStageWithKey<Tuple4<Integer, Double, Double, Long>, Integer> timestampedTupleStream = tupleStream.addTimestamps(item -> item.f3(), 10)
+        StreamStageWithKey<Tuple4<Integer, Double, Double, Long>, Integer> timestampedTupleStream = tupleStream.addTimestamps(item -> item.f3(), 5000)
                 .setName("Add timestamps and split by id")
                 .groupingKey(item -> item.f0());
 
-        StageWithKeyAndWindow<Tuple4<Integer, Double, Double, Long>, Integer> pingWindows = timestampedTupleStream.window(WindowDefinition.sliding(30, 2));
+        StageWithKeyAndWindow<Tuple4<Integer, Double, Double, Long>, Integer> pingWindows = timestampedTupleStream.window(WindowDefinition.sliding(30000, 2000));
 
         AggregateOperation1<Tuple4<Integer, Double, Double, Long>, VelocityAccumulator, Double> velocityAggregator =
                 AggregateOperation.withCreate(VelocityAccumulator::new)

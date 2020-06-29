@@ -1,0 +1,40 @@
+<hazelcast xsi:schemaLocation="http://www.hazelcast.com/schema/config hazelcast-config-4.0.xsd"
+           xmlns="http://www.hazelcast.com/schema/config"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <cluster-name>jet</cluster-name>
+    <network>
+        <join>
+            <multicast enabled="false"/>
+            <tcp-ip enabled="true">
+                <member>jet-1:5701</member>
+                <member>jet-2:5701</member>
+            </tcp-ip>
+        </join>
+        <rest-api enabled="true">
+            <endpoint-group name="HEALTH_CHECK" enabled="true"/>
+            <endpoint-group name="CLUSTER_READ" enabled="true"/>
+            <endpoint-group name="CLUSTER_WRITE" enabled="true"/>
+            <endpoint-group name="HOT_RESTART" enabled="true"/>
+            <endpoint-group name="WAN" enabled="true"/>
+            <endpoint-group name="DATA" enabled="true"/>
+        </rest-api>
+    </network>
+
+
+    <map name="ping_input">
+        <statistics-enabled>true</statistics-enabled>
+        <in-memory-format>OBJECT</in-memory-format>
+        <max-idle-seconds>60</max-idle-seconds>
+        <event-journal enabled="false">
+            <capacity>100000</capacity>
+            <time-to-live-seconds>0</time-to-live-seconds>
+        </event-journal>
+    </map>
+
+    <map name="ping_output">
+        <in-memory-format>BINARY</in-memory-format>
+    </map>
+
+    <properties>
+    </properties>
+</hazelcast>

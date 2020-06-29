@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hz-management-center-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hz-management-center
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: hz-management-center
+    spec:
+      containers:
+      - name: hz-management-center
+        image: index.docker.io/hazelcast/management-center:latest
+        ports:
+          - protocol: TCP
+            containerPort: 8080
+        env:
+          - name: JAVA_OPTS
+            value: -Dhazelcast.mc.healthCheck.enable=true
+        resources:
+          requests:
+            memory: 512M
+            cpu: 2

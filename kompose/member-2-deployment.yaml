@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.21.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: member-2
+  name: member-2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: member-2
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.21.0 ()
+      creationTimestamp: null
+      labels:
+        io.kompose.service: member-2
+    spec:
+      containers:
+      - args:
+        - java
+        - -cp
+        - /opt/project/jet-server/target/jet-server-1.0-SNAPSHOT.jar
+        - -Dhazelcast.config=/opt/project/hazelcast-config/hazelcast.xml
+        - com.hazelcast.sample.jet.geo.server.Server
+        image: adoptopenjdk/openjdk8:alpine
+        imagePullPolicy: ""
+        name: member-2
+        resources: {}
+        volumeMounts:
+        - mountPath: /opt/project
+          name: member-2-claim0
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: member-2-claim0
+        persistentVolumeClaim:
+          claimName: member-2-claim0
+status: {}

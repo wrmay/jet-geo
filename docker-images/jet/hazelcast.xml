@@ -22,7 +22,7 @@
         <statistics-enabled>true</statistics-enabled>
         <in-memory-format>OBJECT</in-memory-format>
         <max-idle-seconds>60</max-idle-seconds>
-        <event-journal enabled="false">
+        <event-journal enabled="true">
             <capacity>100000</capacity>
             <time-to-live-seconds>0</time-to-live-seconds>
         </event-journal>

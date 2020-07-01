@@ -5,10 +5,7 @@
     <network>
         <join>
             <multicast enabled="false"/>
-            <tcp-ip enabled="true">
-                <member>jet-1:5701</member>
-                <member>jet-2:5701</member>
-            </tcp-ip>
+            <kubernetes enabled="true"/>
         </join>
         <rest-api enabled="true">
             <endpoint-group name="HEALTH_CHECK" enabled="true"/>

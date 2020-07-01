@@ -1,0 +1,60 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jet-service
+  labels:
+    app: jet
+spec:
+  ports:
+  - port: 5701
+    name: jet
+    protocol: TCP
+  clusterIP: None
+  selector:
+    app: jet
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: jet-cluster
+spec:
+  selector:
+    matchLabels:
+      app: jet
+  serviceName: jet-service
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: jet
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: jet-instance
+          env:
+            - name: HAZELCAST_KUBERNETES_SERVICE_DNS
+              value: jet-service.jet-geo.svc.cluster.local
+                      
+          image: image-registry.openshift-image-registry.svc:5000/jet-geo/jet:latest
+          ports:
+            - name: jet
+              containerPort: 5701
+          livenessProbe:
+            httpGet:
+              path: /hazelcast/health/node-state
+              port: 5701
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /hazelcast/health/node-state
+              port: 5701
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 1

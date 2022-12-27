@@ -13,7 +13,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jet.version>3.2.1</jet.version>
+        <jet.version>4.5.4</jet.version>
         <jackson.version>2.10.0</jackson.version>
     </properties>
 
